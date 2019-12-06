@@ -7,6 +7,7 @@ var express = require('express'),
     pug = require('pug'),
     path = require('path'),
     home = require('./routes/home');
+var WebSocketServer = require('ws').Server;
 
 var app = express();
 
@@ -24,3 +25,40 @@ app.get('/', home.index);
 var server = app.listen(app.get('port'), app.get('host'), function(){
     console.log('Express server listening on port ' + app.get('port'));
 });
+var wss = new WebSocketServer({
+    server: server
+  });
+  
+  wss.on('connection', function(ws) {
+    ws.on('message', function(message) {
+      console.log("*******",message);
+      var msg = JSON.parse(message);
+      if (msg && msg.startCount) {
+          startCount();
+      }
+    });
+  });
+
+var count = require('./count.js');
+function startCount() {
+var file = 'file:/data/dream.txt';
+count.start(file, function(results){
+	//TODO:  SOMETHING BETTER WITH RESULTS HERE
+	console.log('results: ',results);
+});
+
+// stop spark  when we stop the node program
+process.on('SIGTERM', function () {
+  count.stop(function() {
+    console.log('SIGTERM - stream has been stopped');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', function () {
+  count.stop(function() {
+    console.log('SIGINT - stream has been stopped');
+    process.exit(0);
+  });
+});
+};
